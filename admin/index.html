@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Admin — Portfolio</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="admin.css" />
+  <script src="../theme.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon" id="navToggle" aria-label="Sections">☰</button>
+    <strong class="brand">Admin portfolio</strong>
+    <span class="status" id="status"></span>
+    <div class="actions">
+      <button id="previewBtn" title="Voir le brouillon dans un nouvel onglet">Aperçu</button>
+      <button id="publishBtn" class="primary" title="Enregistrer sur GitHub et mettre le site en ligne">Publier</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside id="sidebar">
+      <nav id="sections"></nav>
+      <hr />
+      <button class="side" data-view="files">Photo &amp; CV</button>
+      <button class="side" data-view="backup">Sauvegarde &amp; historique</button>
+      <button class="side" data-view="settings">Connexion GitHub</button>
+      <a class="side" href="../" target="_blank" rel="noopener">Voir le site en ligne ↗</a>
+    </aside>
+    <main id="editor" tabindex="-1"></main>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="admin.js" defer></script>
+</body>
+</html>

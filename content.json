@@ -1,0 +1,207 @@
+{
+  "profile": {
+    "name": "Soumaïla SOULE",
+    "role": "Développeur Full Stack web & mobile · Chef de projet tech",
+    "location": "Cotonou, Bénin",
+    "available": true,
+    "intro": "Diplômé en Informatique de Gestion, je conçois et livre des applications web et mobiles de bout en bout — de l'architecture au déploiement — et je pilote des projets techniques aux côtés des équipes métier.",
+    "photo": "",
+    "cv": "",
+    "githubUser": "Soum360"
+  },
+  "stats": [
+    {
+      "value": "5+",
+      "label": "années d'expérience"
+    },
+    {
+      "value": "15+",
+      "label": "projets livrés"
+    },
+    {
+      "value": "Web · Mobile",
+      "label": "ERP, e-commerce, apps"
+    }
+  ],
+  "about": [
+    "Je construis des produits utiles : ERP, outils de gestion de stock, plateformes e-commerce, applications mobiles. J'aime transformer un besoin métier flou en un logiciel clair, fiable et agréable à utiliser.",
+    "En tant que chef de projet tech, je fais le lien entre clients, designers et développeurs : cadrage, priorisation, suivi des livraisons et qualité."
+  ],
+  "skills": [
+    {
+      "group": "Front-end",
+      "items": [
+        "React",
+        "Next.js",
+        "TypeScript",
+        "JavaScript",
+        "HTML / CSS",
+        "Tailwind"
+      ]
+    },
+    {
+      "group": "Mobile",
+      "items": [
+        "Flutter",
+        "Dart"
+      ]
+    },
+    {
+      "group": "Back-end & données",
+      "items": [
+        "Node.js",
+        "PHP",
+        "Java",
+        "Python",
+        "MySQL",
+        "PostgreSQL",
+        "Firebase"
+      ]
+    },
+    {
+      "group": "CMS & e-commerce",
+      "items": [
+        "PrestaShop",
+        "WordPress",
+        "HumHub"
+      ]
+    },
+    {
+      "group": "DevOps & outils",
+      "items": [
+        "Git / GitHub",
+        "Docker",
+        "Vercel",
+        "Linux"
+      ]
+    }
+  ],
+  "softSkills": [
+    {
+      "title": "Gestion de projet",
+      "text": "Cadrage, planification, méthodes agiles (Scrum, Kanban), suivi des livrables."
+    },
+    {
+      "title": "Analyse métier",
+      "text": "Recueil des besoins, rédaction de spécifications, modélisation des processus."
+    },
+    {
+      "title": "Leadership technique",
+      "text": "Revue de code, choix d'architecture, accompagnement d'équipe."
+    },
+    {
+      "title": "Communication",
+      "text": "Échanges avec clients et parties prenantes, documentation, formation des utilisateurs."
+    }
+  ],
+  "experience": [
+    {
+      "period": "20XX — Aujourd'hui",
+      "title": "Chef de projet technique & développeur full stack",
+      "org": "Entreprise / Freelance",
+      "place": "Cotonou",
+      "points": [
+        "Pilotage de projets web et mobiles, de l'analyse du besoin jusqu'à la mise en production.",
+        "Développement d'un ERP et d'outils de gestion (stocks, transit, facturation).",
+        "Coordination d'une équipe de développeurs et relation client."
+      ],
+      "tags": [
+        "React",
+        "Node.js",
+        "Flutter",
+        "Gestion de projet"
+      ]
+    },
+    {
+      "period": "20XX — 20XX",
+      "title": "Développeur web",
+      "org": "Entreprise",
+      "place": "Cotonou",
+      "points": [
+        "Création et maintenance de boutiques e-commerce (PrestaShop).",
+        "Intégration de maquettes et développement de fonctionnalités sur mesure."
+      ],
+      "tags": [
+        "PHP",
+        "PrestaShop",
+        "MySQL"
+      ]
+    }
+  ],
+  "achievements": [
+    {
+      "title": "VibeSense",
+      "description": "Application web en TypeScript déployée sur Vercel.",
+      "tags": [
+        "TypeScript",
+        "Next.js",
+        "Vercel"
+      ],
+      "repo": "https://github.com/Soum360/vibesense",
+      "demo": "https://vibesense-theta.vercel.app"
+    },
+    {
+      "title": "ERP de gestion de transit",
+      "description": "Logiciel de gestion des opérations de transit : dossiers, suivi, facturation et tableaux de bord.",
+      "tags": [
+        "ERP",
+        "Full stack"
+      ]
+    },
+    {
+      "title": "Application de gestion de stock",
+      "description": "Suivi des entrées/sorties, inventaires et alertes de réapprovisionnement.",
+      "tags": [
+        "Web",
+        "Gestion"
+      ]
+    },
+    {
+      "title": "Projet Flutter",
+      "description": "Application mobile multiplateforme (Android / iOS) développée avec Flutter.",
+      "tags": [
+        "Flutter",
+        "Dart"
+      ],
+      "repo": "https://github.com/Soum360/FlutterProject"
+    },
+    {
+      "title": "Bataille navale en Java",
+      "description": "Jeu de bataille navale en Java : logique de jeu, grille et tours de joueurs.",
+      "tags": [
+        "Java",
+        "POO"
+      ],
+      "repo": "https://github.com/Soum360/Naval-battle-in-Java"
+    }
+  ],
+  "hiddenRepos": [
+    "Soum360"
+  ],
+  "education": [
+    {
+      "period": "20XX — 20XX",
+      "title": "Licence / Master en Informatique de Gestion",
+      "org": "Établissement",
+      "place": "Bénin",
+      "points": []
+    }
+  ],
+  "certifications": [],
+  "languages": [
+    {
+      "name": "Français",
+      "level": "Courant"
+    },
+    {
+      "name": "Anglais",
+      "level": "Professionnel"
+    }
+  ],
+  "contact": {
+    "email": "",
+    "phone": "",
+    "github": "https://github.com/Soum360",
+    "linkedin": ""
+  }
+}
