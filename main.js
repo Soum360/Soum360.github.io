@@ -67,6 +67,7 @@
           ${chips(p.tags)}
           ${p.demo || p.repo ? `<div class="links">${p.demo ? ext(p.demo, "Voir le site ↗") : ""}${p.repo ? ext(p.repo, "Code source ↗") : ""}</div>` : ""}
         </article>`).join("");
+    stagger($("featured").children, 60);
   };
   const allTags = [...new Set(A.flatMap((p) => p.tags || []))];
   $("filters").innerHTML = [`<button class="filter active" data-tag="">Tout</button>`]
@@ -87,6 +88,7 @@
     $("repos").innerHTML = list.length
       ? list.map((r) => `<a class="repo" href="${safeUrl(r.html_url)}" target="_blank" rel="noopener noreferrer"><strong>${esc(r.name)}</strong><span>${esc(r.description || r.language || "Dépôt GitHub")}</span></a>`).join("")
       : `<p class="muted">Tous mes projets publics sont présentés ci-dessus. ${ext(profile, "Voir mon profil GitHub ↗")}</p>`;
+    stagger($("repos").children, 50);
   };
   const KEY = "gh-repos-v1";
   let cached = null;
@@ -106,13 +108,75 @@
   const c = P.contact;
   document.title = `${P.name} — ${(P.role || "").split("·")[0].trim()}`;
   $("contactLinks").innerHTML = [
-    c.email && `<a class="btn primary" href="mailto:${safeUrl(c.email)}">${esc(c.email)}</a>`,
+    c.email && `<a class="btn primary" href="mailto:${safeUrl(c.email)}">Écrire un e-mail <span class="arrow" aria-hidden="true">→</span></a>`,
+    c.email && `<button class="btn" type="button" data-copy="${esc(c.email)}">Copier l'adresse</button>`,
     c.phone && `<a class="btn" href="tel:${safeUrl(c.phone.replace(/\s/g, ""))}">${esc(c.phone)}</a>`,
     c.linkedin && `<a class="btn" href="${safeUrl(c.linkedin)}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>`,
     c.github && `<a class="btn" href="${safeUrl(c.github)}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>`,
   ].filter(Boolean).join("");
 
+  enhance();
   }
+
+  // ═══════════ Interactions ═══════════
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const stagger = (els, step) => [...els].forEach((el, i) => el.style.setProperty("--d", Math.min(i * step, 480) + "ms"));
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  function enhance() {
+    // Apparition progressive au défilement
+    const groups = [".section h2", ".prose p", "#skillsGrid .tile", "#softGrid .tile", ".timeline > li", ".langs li", ".contact-box", ".sub"];
+    const targets = [];
+    groups.forEach((sel) => { const els = document.querySelectorAll(sel); stagger(els, 70); els.forEach((el) => { el.classList.add("reveal"); targets.push(el); }); });
+    if (reduced || !("IntersectionObserver" in window)) targets.forEach((el) => el.classList.add("in"));
+    else {
+      const ro = new IntersectionObserver((entries) => entries.forEach((en) => { if (en.isIntersecting) { const el = en.target; el.classList.add("in"); ro.unobserve(el); setTimeout(() => el.classList.remove("reveal", "in"), 1400); } }), { rootMargin: "0px 0px -8% 0px" });
+      targets.forEach((el) => ro.observe(el));
+    }
+
+    // Compteurs animés (« 15+ » compte de 0 à 15)
+    document.querySelectorAll(".stats dd").forEach((dd) => {
+      const m = dd.textContent.match(/^(\d+)(.*)$/); if (!m || reduced) return;
+      const end = +m[1], rest = m[2]; dd.textContent = "0" + rest;
+      const so = new IntersectionObserver(([en]) => {
+        if (!en.isIntersecting) return; so.disconnect();
+        const t0 = performance.now(), dur = 1100;
+        const tick = (now) => { const p = Math.min(1, (now - t0) / dur); dd.textContent = Math.round(end * (1 - Math.pow(1 - p, 3))) + rest; if (p < 1) requestAnimationFrame(tick); };
+        requestAnimationFrame(tick);
+      });
+      so.observe(dd);
+    });
+  }
+
+  // Copier l'e-mail
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-copy]"); if (!b) return;
+    navigator.clipboard?.writeText(b.dataset.copy).then(() => toast("Adresse copiée ✓"), () => toast(b.dataset.copy));
+  });
+
+  // Halo qui suit la souris sur les cartes
+  document.addEventListener("pointermove", (e) => {
+    const el = e.target.closest?.(".card, .tile, .repo"); if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--mx", e.clientX - r.left + "px"); el.style.setProperty("--my", e.clientY - r.top + "px");
+  }, { passive: true });
+
+  // Barre de progression, ombre de l'en-tête, bouton retour en haut
+  const bar = $("progress"), nav = $("nav"), top = $("toTop");
+  let ticking = false;
+  const onScroll = () => {
+    const y = scrollY, max = document.documentElement.scrollHeight - innerHeight;
+    bar.style.transform = `scaleX(${max > 0 ? y / max : 0})`;
+    nav.classList.toggle("scrolled", y > 8);
+    top.classList.toggle("show", y > 700);
+    ticking = false;
+  };
+  addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  top.addEventListener("click", () => scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }));
+  onScroll();
 
   // ── Chargement du contenu (ou du brouillon en mode aperçu depuis l'admin) ──
   const preview = new URLSearchParams(location.search).has("preview");
