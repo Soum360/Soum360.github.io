@@ -97,7 +97,18 @@
       <div class="contact-box">
         <h3>Travaillons ensemble.</h3>
         <p class="prose">Un projet, une mission ou une simple question ? Écrivez-moi, je réponds rapidement.</p>
-        <div id="contactLinks" class="cta"></div>
+        <div id="contactCards" class="contact-cards"></div>
+        <form id="quickMsg" class="quick-msg" hidden novalidate>
+          <h4>Message rapide</h4>
+          <div class="qm-row">
+            <label><span>Votre nom</span><input name="name" type="text" autocomplete="name" maxlength="80" required /></label>
+            <label><span>Objet</span><input name="subject" type="text" maxlength="120" placeholder="Projet, mission, question…" /></label>
+          </div>
+          <label><span>Votre message</span><textarea name="message" rows="4" maxlength="2000" required></textarea></label>
+          <p class="qm-err" id="qmErr" role="alert"></p>
+          <div class="cta" id="qmActions"></div>
+        </form>
+        <div id="contactLinks" class="cta socials"></div>
       </div>
     </section>
   </main>

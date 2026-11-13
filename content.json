@@ -201,7 +201,8 @@
   "contact": {
     "email": "",
     "phone": "",
-    "github": "https://github.com/Soum360",
-    "linkedin": ""
+    "whatsapp": true,
+    "linkedin": "",
+    "github": "https://github.com/Soum360"
   }
 }

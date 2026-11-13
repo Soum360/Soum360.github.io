@@ -45,7 +45,8 @@
       fields: [{ k: "name", label: "Langue", req: true, half: true }, { k: "level", label: "Niveau", ph: "Courant, B2, natif…", half: true }] },
     { key: "contact", label: "Contact", kind: "object", help: "Laissez un champ vide pour ne pas l'afficher.", fields: [
       { k: "email", label: "E-mail public", type: "email" },
-      { k: "phone", label: "Téléphone / WhatsApp", type: "tel" },
+      { k: "phone", label: "Téléphone", type: "tel", help: "Format international, ex. : +229 01 23 45 67 89 (indispensable pour WhatsApp)." },
+      { k: "whatsapp", label: "Ce numéro est aussi joignable sur WhatsApp", type: "bool" },
       { k: "linkedin", label: "Profil LinkedIn", type: "url" },
       { k: "github", label: "Profil GitHub", type: "url" },
     ] },
@@ -216,6 +217,7 @@
   function fieldError(v, f) {
     if (f.req && (Array.isArray(v) ? !v.length : !String(v ?? "").trim())) return "obligatoire";
     if (f.type === "url" && v && !/^https?:\/\/[^\s]+$/i.test(v)) return "doit commencer par https://";
+    if (f.type === "tel" && v && !/^\+\d[\d\s().-]{6,20}$/.test(v)) return "format international attendu (ex. +229 01 23 45 67 89)";
     if (f.type === "email" && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "adresse e-mail invalide";
     return "";
   }

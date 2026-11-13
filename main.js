@@ -107,13 +107,49 @@
   // ── Contact ──
   const c = P.contact;
   document.title = `${P.name} — ${(P.role || "").split("·")[0].trim()}`;
+  const ICON = {
+    mail: '<path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/>',
+    phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+    chat: '<path d="M20 12a8 8 0 0 1-11.8 7L4 20l1.1-4A8 8 0 1 1 20 12z"/><path d="M9 10h6M9 13.5h4"/>',
+  };
+  const icon = (n) => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+  const tel = (c.phone || "").replace(/[^\d+]/g, "");
+  const wa = c.phone && c.whatsapp !== false ? tel.replace(/\D/g, "") : "";
+  const card = (ic, label, value, actions) => `
+    <div class="contact-card"><span class="cc-icon">${icon(ic)}</span>
+      <div class="cc-body"><span class="cc-label">${label}</span><strong>${esc(value)}</strong>
+      <div class="cc-actions">${actions}</div></div></div>`;
+  $("contactCards").innerHTML = [
+    c.email && card("mail", "E-mail", c.email, `<a href="mailto:${esc(c.email)}">Écrire</a><button type="button" data-copy="${esc(c.email)}">Copier</button>`),
+    c.phone && card("phone", "Téléphone", c.phone, `<a href="tel:${esc(tel)}">Appeler</a><button type="button" data-copy="${esc(c.phone)}">Copier</button>`),
+    wa && card("chat", "WhatsApp", c.phone, `<a href="https://wa.me/${wa}" target="_blank" rel="noopener noreferrer">Ouvrir la discussion ↗</a>`),
+  ].filter(Boolean).join("");
   $("contactLinks").innerHTML = [
-    c.email && `<a class="btn primary" href="mailto:${safeUrl(c.email)}">Écrire un e-mail <span class="arrow" aria-hidden="true">→</span></a>`,
-    c.email && `<button class="btn" type="button" data-copy="${esc(c.email)}">Copier l'adresse</button>`,
-    c.phone && `<a class="btn" href="tel:${safeUrl(c.phone.replace(/\s/g, ""))}">${esc(c.phone)}</a>`,
     c.linkedin && `<a class="btn" href="${safeUrl(c.linkedin)}" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>`,
     c.github && `<a class="btn" href="${safeUrl(c.github)}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>`,
   ].filter(Boolean).join("");
+
+  // Message rapide : prépare un e-mail ou un message WhatsApp (aucune donnée ne transite par le site)
+  const form = $("quickMsg");
+  if (c.email || wa) {
+    form.hidden = false;
+    $("qmActions").innerHTML = [
+      c.email && `<button class="btn primary" type="submit" value="mail">${icon("mail")} Envoyer par e-mail</button>`,
+      wa && `<button class="btn ${c.email ? "" : "primary"}" type="submit" value="wa">${icon("chat")} Envoyer sur WhatsApp</button>`,
+    ].filter(Boolean).join("");
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const f = new FormData(form), name = (f.get("name") || "").trim(), msg = (f.get("message") || "").trim(), subj = (f.get("subject") || "").trim();
+      if (!name || !msg) { $("qmErr").textContent = "Indiquez votre nom et votre message."; return; }
+      $("qmErr").textContent = "";
+      const how = e.submitter ? e.submitter.value : c.email ? "mail" : "wa";
+      if (how === "wa") {
+        window.open(`https://wa.me/${wa}?text=${encodeURIComponent(`Bonjour, je suis ${name}.${subj ? `\nObjet : ${subj}` : ""}\n\n${msg}`)}`, "_blank", "noopener");
+      } else {
+        location.href = `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent(subj || `Contact depuis le portfolio — ${name}`)}&body=${encodeURIComponent(`${msg}\n\n— ${name}`)}`;
+      }
+    };
+  }
 
   enhance();
   }
