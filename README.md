@@ -16,9 +16,9 @@ Site statique (HTML/CSS/JS sans framework) hébergé sur **GitHub Pages**, avec 
 
 ## Utiliser l'admin
 
-1. Ouvrir `/admin/`, aller dans **Connexion GitHub** et suivre les étapes pour créer un *fine-grained token* :
-   - accès limité au dépôt `Soum360.github.io` uniquement,
-   - permission **Contents : Read and write** (rien d'autre).
+1. **Première fois sur un appareil** : ouvrir `/admin/`, créer un *fine-grained token* GitHub (accès au seul dépôt
+   `Soum360.github.io`, permission **Contents : Read and write**), le coller et choisir un mot de passe admin.
+   **Ensuite** : `/admin/` demande simplement le mot de passe.
 2. Modifier les sections : ajouter, modifier, supprimer, dupliquer, réordonner (↑ ↓).
    Le brouillon est sauvegardé automatiquement dans le navigateur.
 3. **Aperçu** pour voir le brouillon sur le vrai site, puis **Publier** (ou `Ctrl/⌘ + S`).
@@ -28,7 +28,12 @@ Site statique (HTML/CSS/JS sans framework) hébergé sur **GitHub Pages**, avec 
 ## Sécurité
 
 - Le site n'a ni serveur ni base de données : il n'y a rien à pirater côté serveur.
-- La page admin est publique, mais elle ne peut **rien modifier sans le jeton**. Le jeton reste dans le navigateur, n'est envoyé qu'à `api.github.com` et ne donne accès qu'à ce dépôt.
+- L'admin affiche d'abord un **écran de connexion** ; rien n'est accessible sans déverrouillage.
+- Le jeton GitHub est **chiffré** sur l'appareil (AES-256-GCM, clé dérivée du mot de passe par PBKDF2-SHA256, 600 000 itérations).
+  Il n'est déchiffré qu'en mémoire, n'est envoyé qu'à `api.github.com` et ne donne accès qu'à ce dépôt.
+- Délai croissant après plusieurs mots de passe erronés ; verrouillage automatique après 15 min d'inactivité.
+- Un nouvel appareil exige un nouveau jeton, donc une connexion à GitHub (protégée par la **2FA GitHub** — à activer
+  sur https://github.com/settings/security).
 - Content-Security-Policy stricte (aucun script tiers, aucun script en ligne) et tout le contenu affiché est échappé.
 - `/admin/` est exclu des moteurs de recherche (`robots.txt` + `noindex`).
 - En cas de perte d'un appareil : révoquer le jeton sur https://github.com/settings/personal-access-tokens.

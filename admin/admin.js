@@ -89,13 +89,39 @@
     }
     return { owner: "Soum360", repo: "Soum360.github.io" };
   }
-  const settings = Object.assign({ ...defaultRepo(), branch: "main", remember: false }, store.get(SETTINGS_KEY) || {});
-  settings.token = store.get("portfolio-admin-token", sessionStorage) || store.get("portfolio-admin-token") || "";
-  function saveSettings() {
-    const { token, ...rest } = settings;
-    store.set(SETTINGS_KEY, rest);
-    store.del("portfolio-admin-token"); store.del("portfolio-admin-token", sessionStorage);
-    if (token) store.set("portfolio-admin-token", token, settings.remember ? localStorage : sessionStorage);
+  const settings = Object.assign({ ...defaultRepo(), branch: "main" }, store.get(SETTINGS_KEY) || {});
+  delete settings.remember;
+  settings.token = ""; // uniquement en mémoire, jamais stocké en clair
+  // Nettoyage des anciennes versions qui stockaient le jeton en clair
+  store.del("portfolio-admin-token"); store.del("portfolio-admin-token", sessionStorage);
+  function saveSettings() { const { token, ...rest } = settings; store.set(SETTINGS_KEY, rest); }
+
+  // ═══════════════ Coffre chiffré (jeton protégé par mot de passe) ═══════════════
+  const VAULT_KEY = "portfolio-admin-vault";
+  const FAIL_KEY = "portfolio-admin-fails";
+  const ITER = 600000;
+  const u8toB64 = (u8) => { let s = ""; u8.forEach((c) => (s += String.fromCharCode(c))); return btoa(s); };
+  const b64toU8 = (b) => Uint8Array.from(atob(b), (c) => c.charCodeAt(0));
+  async function deriveKey(pw, salt, iter) {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  }
+  async function sealVault(token, pw) {
+    const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await deriveKey(pw, salt, ITER), new TextEncoder().encode(token));
+    store.set(VAULT_KEY, { v: 1, iter: ITER, salt: u8toB64(salt), iv: u8toB64(iv), ct: u8toB64(new Uint8Array(ct)) });
+  }
+  async function openVault(pw) {
+    const v = store.get(VAULT_KEY);
+    const key = await deriveKey(pw, b64toU8(v.salt), v.iter);
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64toU8(v.iv) }, key, b64toU8(v.ct)); // échoue si mauvais mot de passe
+    return new TextDecoder().decode(pt);
+  }
+  const pwError = (pw, pw2) => (pw.length < 10 ? "Le mot de passe doit faire au moins 10 caractères." : pw !== pw2 ? "Les deux mots de passe ne correspondent pas." : "");
+  async function checkToken(token) {
+    const prev = settings.token; settings.token = token;
+    try { const r = await gh(""); if (!r.permissions?.push) throw new Error("Ce jeton ne permet pas d'écrire dans le dépôt " + settings.repo + "."); }
+    catch (e) { settings.token = prev; throw e; }
   }
 
   async function gh(path, opts = {}) {
@@ -270,7 +296,7 @@
 
   function requireToken() {
     if (settings.token) return true;
-    toast("Configurez d'abord la connexion GitHub.", true); go("settings"); return false;
+    lock(); return false;
   }
 
   function filesView() {
@@ -341,41 +367,43 @@
     ];
   }
 
+  const pwInput = (label, help) => {
+    const el = h("input", { type: "password", autocomplete: "new-password", spellcheck: "false" });
+    return { el, wrap: h("label", { class: "field" }, h("span", {}, label), el, help && h("small", {}, help)) };
+  };
+  const tokenSteps = () => h("ol", { class: "steps" },
+    h("li", {}, "Ouvrez ", h("a", { href: "https://github.com/settings/personal-access-tokens/new", target: "_blank", rel: "noopener noreferrer" }, "GitHub → Fine-grained token ↗"), " (connexion GitHub + 2FA demandées)."),
+    h("li", {}, "Nom : « Admin portfolio ». Expiration : 90 jours conseillé."),
+    h("li", {}, "Repository access : ", h("strong", {}, "Only select repositories"), " → ", h("code", {}, settings.repo), "."),
+    h("li", {}, "Permissions → Repository → ", h("strong", {}, "Contents : Read and write"), ". Rien d'autre."),
+    h("li", {}, "Générez et copiez le jeton (commence par ", h("code", {}, "github_pat_"), ")."));
+
   function settingsView() {
     const s = settings;
-    const inp = (k, label, type, help) => {
-      const el = h("input", { type: type || "text", autocomplete: "off", spellcheck: "false", oninput: (e) => (s[k] = e.target.value.trim()) });
-      el.value = s[k] || "";
-      return h("label", { class: "field" }, h("span", {}, label), el, help && h("small", {}, help));
-    };
-    const tokenUrl = "https://github.com/settings/personal-access-tokens/new";
+    const repoInp = (k, label) => { const el = h("input", { type: "text", autocomplete: "off", spellcheck: "false", oninput: (e) => (s[k] = e.target.value.trim()) }); el.value = s[k] || ""; return h("label", { class: "field" }, h("span", {}, label), el); };
+    const np = pwInput("Nouveau mot de passe", "10 caractères minimum."), np2 = pwInput("Confirmer le nouveau mot de passe");
+    const nt = pwInput("Nouveau jeton GitHub"), ntp = pwInput("Mot de passe de l'admin (pour chiffrer le nouveau jeton)");
     return [
-      h("h1", {}, "Connexion GitHub"),
-      h("p", { class: "help" }, "Pour publier, l'admin a besoin d'un jeton d'accès GitHub limité à votre seul dépôt. Il reste stocké uniquement dans ce navigateur."),
-      h("div", { class: "card" }, h("h2", {}, "Créer le jeton (une seule fois)"),
-        h("ol", { class: "steps" },
-          h("li", {}, "Ouvrez ", h("a", { href: tokenUrl, target: "_blank", rel: "noopener noreferrer" }, "GitHub → Fine-grained token ↗"), "."),
-          h("li", {}, "Nom : « Admin portfolio ». Expiration : 90 jours ou 1 an."),
-          h("li", {}, "Repository access : ", h("strong", {}, "Only select repositories"), " → ", h("code", {}, s.repo), "."),
-          h("li", {}, "Permissions → Repository → ", h("strong", {}, "Contents : Read and write"), ". Rien d'autre."),
-          h("li", {}, "Générez, copiez le jeton (commence par ", h("code", {}, "github_pat_"), ") et collez-le ci-dessous."))),
-      h("div", { class: "card" },
-        h("div", { class: "row2" }, inp("owner", "Propriétaire du dépôt"), inp("repo", "Nom du dépôt")),
-        inp("branch", "Branche", "text", "Généralement « main »."),
-        inp("token", "Jeton d'accès", "password"),
-        h("label", { class: "field check" }, h("input", { type: "checkbox", checked: s.remember, onchange: (e) => (s.remember = e.target.checked) }),
-          h("span", {}, "Se souvenir du jeton sur cet appareil (sinon, oublié à la fermeture de l'onglet). À n'activer que sur un appareil personnel.")),
-        h("div", { class: "btnrow" },
-          h("button", { class: "primary", onclick: async () => {
-            saveSettings();
-            if (!s.token) return toast("Paramètres enregistrés (sans jeton).");
-            try {
-              const r = await gh("");
-              if (!r.permissions?.push) throw new Error("Le jeton ne permet pas d'écrire dans ce dépôt.");
-              toast("Connexion réussie ✓"); await load();
-            } catch (e) { toast(e.message, true); }
-          } }, "Enregistrer et tester"),
-          h("button", { class: "danger", onclick: () => { s.token = ""; saveSettings(); route(); toast("Jeton supprimé de cet appareil."); } }, "Déconnecter cet appareil"))),
+      h("h1", {}, "Sécurité & connexion"),
+      h("p", { class: "help" }, "Votre jeton GitHub est stocké chiffré sur cet appareil (AES-256). Il n'est déchiffré qu'en mémoire, après saisie de votre mot de passe, et l'admin se verrouille après 15 minutes d'inactivité."),
+      h("div", { class: "card" }, h("h2", {}, "Changer le mot de passe"), np.wrap, np2.wrap,
+        h("button", { class: "primary", onclick: async () => {
+          const err = pwError(np.el.value, np2.el.value); if (err) return toast(err, true);
+          await sealVault(s.token, np.el.value); np.el.value = np2.el.value = ""; toast("Mot de passe modifié ✓");
+        } }, "Changer le mot de passe")),
+      h("div", { class: "card" }, h("h2", {}, "Remplacer le jeton GitHub"), h("p", { class: "help" }, "À faire quand le jeton expire ou si vous pensez qu'il a fuité (révoquez alors l'ancien sur GitHub)."), tokenSteps(), nt.wrap, ntp.wrap,
+        h("button", { class: "primary", onclick: async () => {
+          const t = nt.el.value.trim(); if (!t) return toast("Collez le nouveau jeton.", true);
+          try { await openVault(ntp.el.value); } catch (e) { return toast("Mot de passe incorrect.", true); }
+          try { await checkToken(t); await sealVault(t, ntp.el.value); nt.el.value = ntp.el.value = ""; toast("Jeton remplacé ✓"); } catch (e) { toast(e.message, true); }
+        } }, "Vérifier et enregistrer")),
+      h("div", { class: "card" }, h("h2", {}, "Dépôt GitHub"),
+        h("div", { class: "row2" }, repoInp("owner", "Propriétaire"), repoInp("repo", "Dépôt")), repoInp("branch", "Branche"),
+        h("button", { onclick: async () => { saveSettings(); try { await checkToken(s.token); toast("Dépôt enregistré ✓"); await load(); } catch (e) { toast(e.message, true); } } }, "Enregistrer et tester")),
+      h("div", { class: "card" }, h("h2", {}, "Déconnecter cet appareil"),
+        h("p", { class: "help" }, "Supprime le jeton chiffré de ce navigateur. Il faudra un jeton GitHub pour se reconnecter. Pour bloquer l'accès partout, révoquez le jeton sur ",
+          h("a", { href: "https://github.com/settings/personal-access-tokens", target: "_blank", rel: "noopener noreferrer" }, "GitHub ↗"), "."),
+        h("button", { class: "danger", onclick: () => { if (confirm("Supprimer l'accès admin de cet appareil ?")) { store.del(VAULT_KEY); store.del(FAIL_KEY); lock(); } } }, "Déconnecter cet appareil")),
     ];
   }
 
@@ -409,12 +437,70 @@
     finally { btn.disabled = false; }
   }
 
+  // ═══════════════ Écran de connexion ═══════════════
+  function showApp(on) {
+    $("#gate").hidden = on; $(".topbar").hidden = !on; $(".layout").hidden = !on;
+  }
+  function lock() {
+    if (data && isDirty()) store.set(DRAFT_KEY, data);
+    settings.token = ""; data = null; $("#editor").textContent = ""; showApp(false); gate();
+  }
+  let idleTimer;
+  const resetIdle = () => { clearTimeout(idleTimer); if (settings.token) idleTimer = setTimeout(() => { lock(); toast("Verrouillé après 15 min d'inactivité."); }, 15 * 60e3); };
+  ["click", "keydown", "input", "scroll"].forEach((ev) => document.addEventListener(ev, resetIdle, { passive: true }));
+
+  function gate() {
+    const g = $("#gate"); g.textContent = ""; showApp(false);
+    if (!window.crypto?.subtle) { g.append(h("div", { class: "gate-box" }, h("h1", {}, "Connexion sécurisée requise"), h("p", { class: "help" }, "Ouvrez l'admin en HTTPS."))); return; }
+    const hasVault = !!store.get(VAULT_KEY);
+    const msg = h("p", { class: "gate-err", role: "alert" });
+    const btn = h("button", { class: "primary", type: "submit" }, hasVault ? "Déverrouiller" : "Activer l'admin");
+    const busy = (b, label) => { btn.disabled = b; btn.textContent = b ? label : hasVault ? "Déverrouiller" : "Activer l'admin"; };
+    const enter = async (token) => { settings.token = token; store.del(FAIL_KEY); showApp(true); resetIdle(); await load(); };
+
+    if (hasVault) {
+      const pw = pwInput("Mot de passe");
+      pw.el.autocomplete = "current-password";
+      const form = h("form", { class: "gate-box", onsubmit: async (e) => {
+        e.preventDefault(); msg.textContent = "";
+        const f = store.get(FAIL_KEY) || { n: 0, until: 0 };
+        if (Date.now() < f.until) return (msg.textContent = `Trop d'essais. Réessayez dans ${Math.ceil((f.until - Date.now()) / 1000)} s.`);
+        busy(true, "Vérification…");
+        try { const t = await openVault(pw.el.value); pw.el.value = ""; await enter(t); }
+        catch (err) {
+          f.n++; if (f.n >= 3) f.until = Date.now() + Math.min(3600, 15 * 2 ** (f.n - 3)) * 1000;
+          store.set(FAIL_KEY, f); msg.textContent = "Mot de passe incorrect." + (f.n >= 3 ? " Attente imposée avant le prochain essai." : ""); busy(false); pw.el.select();
+        }
+      } },
+        h("div", { class: "gate-logo" }, "SS"), h("h1", {}, "Admin du portfolio"), h("p", { class: "help" }, "Entrez votre mot de passe pour déverrouiller."),
+        pw.wrap, msg, btn,
+        h("button", { type: "button", class: "linkish", onclick: () => { if (confirm("Mot de passe oublié : l'accès de cet appareil sera supprimé et il faudra un nouveau jeton GitHub (créé depuis votre compte GitHub). Continuer ?")) { store.del(VAULT_KEY); store.del(FAIL_KEY); gate(); } } }, "Mot de passe oublié ?"));
+      g.append(form); pw.el.focus();
+    } else {
+      const tk = pwInput("Jeton GitHub"), p1 = pwInput("Choisissez un mot de passe admin", "10 caractères minimum. Il chiffre le jeton sur cet appareil."), p2 = pwInput("Confirmez le mot de passe");
+      tk.el.autocomplete = "off";
+      const form = h("form", { class: "gate-box wide", onsubmit: async (e) => {
+        e.preventDefault(); msg.textContent = "";
+        const err = pwError(p1.el.value, p2.el.value); if (err) return (msg.textContent = err);
+        const t = tk.el.value.trim(); if (!t) return (msg.textContent = "Collez votre jeton GitHub.");
+        busy(true, "Vérification auprès de GitHub…");
+        try { await checkToken(t); await sealVault(t, p1.el.value); tk.el.value = p1.el.value = p2.el.value = ""; await enter(t); toast("Admin activé sur cet appareil ✓"); }
+        catch (err2) { msg.textContent = err2.message; busy(false); }
+      } },
+        h("div", { class: "gate-logo" }, "SS"), h("h1", {}, "Activer l'admin sur cet appareil"),
+        h("p", { class: "help" }, "Seul le propriétaire du compte GitHub peut créer le jeton demandé. Il sera chiffré par votre mot de passe et ne quittera jamais ce navigateur (sauf vers GitHub)."),
+        tokenSteps(), tk.wrap, p1.wrap, p2.wrap, msg, btn);
+      g.append(form); tk.el.focus();
+    }
+  }
+
   // ═══════════════ Démarrage ═══════════════
+  $("#lockBtn").addEventListener("click", lock);
   $("#publishBtn").addEventListener("click", publish);
   $("#previewBtn").addEventListener("click", () => { store.set(DRAFT_KEY, data); window.open("../?preview=1", "_blank", "noopener"); });
   $("#navToggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
   document.querySelectorAll("aside [data-view]").forEach((b) => b.addEventListener("click", () => go(b.dataset.view)));
-  window.addEventListener("beforeunload", (e) => { if (data && isDirty()) { store.set(DRAFT_KEY, data); e.preventDefault(); e.returnValue = ""; } });
-  document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); publish(); } });
-  load();
+  window.addEventListener("beforeunload", (e) => { if (data && settings.token && isDirty()) { store.set(DRAFT_KEY, data); e.preventDefault(); e.returnValue = ""; } });
+  document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "s" && settings.token) { e.preventDefault(); publish(); } });
+  gate();
 })();

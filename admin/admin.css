@@ -97,3 +97,15 @@ code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; fon
   .status { display: none; }
   .tools .opt { display: none; }
 }
+
+/* ── Écran de connexion ── */
+.gate { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+.gate-box { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: 0 20px 50px -30px rgba(0,0,0,.4); }
+.gate-box.wide { max-width: 520px; }
+.gate-box h1 { font-size: 1.25rem; margin: 0 0 6px; }
+.gate-box .primary { width: 100%; padding: 11px; margin-top: 4px; }
+.gate-logo { width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(135deg, var(--accent), #7c3aed); color: #fff; font-weight: 700; margin-bottom: 16px; }
+.gate-err { color: var(--danger); font-size: 14px; margin: 0 0 10px; min-height: 0; }
+.gate-err:empty { display: none; }
+.linkish { border: 0; background: none; color: var(--muted); font-size: 13px; padding: 10px 0 0; width: 100%; text-align: center; }
+.linkish:hover { color: var(--accent); }

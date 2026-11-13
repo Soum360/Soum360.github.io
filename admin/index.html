@@ -12,23 +12,25 @@
   <script src="../theme.js"></script>
 </head>
 <body>
-  <header class="topbar">
+  <div id="gate" class="gate"></div>
+  <header class="topbar" hidden>
     <button class="icon" id="navToggle" aria-label="Sections">☰</button>
     <strong class="brand">Admin portfolio</strong>
     <span class="status" id="status"></span>
     <div class="actions">
+      <button id="lockBtn" title="Verrouiller l'admin">Verrouiller</button>
       <button id="previewBtn" title="Voir le brouillon dans un nouvel onglet">Aperçu</button>
       <button id="publishBtn" class="primary" title="Enregistrer sur GitHub et mettre le site en ligne">Publier</button>
     </div>
   </header>
 
-  <div class="layout">
+  <div class="layout" hidden>
     <aside id="sidebar">
       <nav id="sections"></nav>
       <hr />
       <button class="side" data-view="files">Photo &amp; CV</button>
       <button class="side" data-view="backup">Sauvegarde &amp; historique</button>
-      <button class="side" data-view="settings">Connexion GitHub</button>
+      <button class="side" data-view="settings">Sécurité &amp; connexion</button>
       <a class="side" href="../" target="_blank" rel="noopener">Voir le site en ligne ↗</a>
     </aside>
     <main id="editor" tabindex="-1"></main>
